@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mis Finanzas</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/styles.css">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0f0e0d">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+</head>
+<body>
+
+<!-- Add/Edit Transaction Modal -->
+<div class="overlay hide" id="tx-modal">
+  <div class="modal">
+    <h3 id="tx-modal-title">Nueva transacción</h3>
+    <div class="form-row">
+      <label>Tipo</label>
+      <select id="f-type"><option value="gasto">💸 Gasto</option><option value="ingreso">💰 Ingreso</option></select>
+    </div>
+    <div class="form-row">
+      <label>Descripción</label>
+      <input type="text" id="f-desc" placeholder="Ej: Mercadona, Alquiler..."/>
+    </div>
+    <div class="form-row">
+      <label>Importe (€)</label>
+      <input type="number" id="f-amount" placeholder="0.00" step="0.01" min="0"/>
+    </div>
+    <div class="form-row">
+      <label>Categoría</label>
+      <select id="f-cat">
+        <option>Alimentación</option><option>Restaurantes</option><option>Transporte</option>
+        <option>Hogar</option><option>Ocio</option><option>Salud</option>
+        <option>Ropa</option><option>Suscripciones</option><option>Trabajo</option><option>Alquiler</option><option>Sueldo</option><option>Otros</option>
+      </select>
+    </div>
+    <div class="form-row">
+      <label>Fecha</label>
+      <input type="date" id="f-date"/>
+    </div>
+    <div id="tx-modal-err" style="font-size:11px;color:var(--err);margin-bottom:4px;display:none"></div>
+    <div class="btn-row">
+      <button class="btn btn-ghost" onclick="closeTxModal()">Cancelar</button>
+      <button class="btn btn-danger hide" id="btn-delete" onclick="deleteTx()">🗑 Eliminar</button>
+      <button class="btn btn-primary" onclick="saveTx()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Delete confirm -->
+<div class="overlay hide" id="del-modal">
+  <div class="modal" style="max-width:340px;text-align:center">
+    <div style="font-size:32px;margin-bottom:12px">🗑️</div>
+    <h3 style="margin-bottom:8px">¿Eliminar transacción?</h3>
+    <p id="del-desc" style="font-size:13px;color:var(--mut);margin-bottom:20px"></p>
+    <div class="btn-row">
+      <button class="btn btn-ghost" onclick="closeDelModal()">Cancelar</button>
+      <button class="btn btn-danger" onclick="confirmDelete()">Sí, eliminar</button>
+    </div>
+  </div>
+</div>
+
+<!-- PDF Import Modal -->
+<div class="overlay hide" id="pdf-modal">
+  <div class="modal" style="max-width:520px">
+    <h3 id="pdf-modal-title">📄 Importar extracto</h3>
+    <p id="pdf-modal-summary" style="font-size:12px;color:var(--mut);margin-bottom:12px;line-height:1.6"></p>
+    <div id="pdf-modal-list" style="max-height:300px;overflow-y:auto;margin-bottom:16px;display:flex;flex-direction:column;gap:4px"></div>
+    <div id="pdf-modal-err" style="font-size:12px;color:var(--err);margin-bottom:12px;display:none"></div>
+    <div class="btn-row">
+      <button class="btn btn-ghost" onclick="closePdfModal()">Cancelar</button>
+      <button class="btn btn-ghost" id="pdf-import-all-btn" onclick="confirmImport(false)" style="display:none">Importar todos</button>
+      <button class="btn btn-primary" id="pdf-import-btn" onclick="confirmImport(true)">Importar →</button>
+    </div>
+  </div>
+</div>
+
+<!-- Header -->
+<header>
+  <div class="logo"><div class="logo-icon">€</div>Mis Finanzas</div>
+  <div class="hstats">
+    <div class="hstat"><span>Ingresos</span><strong class="pos" id="h-ing">€0</strong></div>
+    <div class="hstat"><span>Gastos</span><strong class="neg" id="h-gas">€0</strong></div>
+    <div class="hstat"><span>Balance</span><strong id="h-bal">€0</strong></div>
+    <div class="hstat" style="border-left:1px solid var(--s3);padding-left:16px">
+      <span>Saldo cuenta</span>
+      <strong id="h-saldo" class="pos" style="color:var(--acc)">€0</strong>
+    </div>
+    <button class="hbtn" id="saldo-edit-btn" onclick="editSaldo()" title="Actualizar saldo" style="font-size:13px;padding:4px 8px">✏️</button>
+  </div>
+  <div class="hbtns">
+    <button class="hbtn" onclick="openTxModal(null)">+ Nueva</button>
+  </div>
+</header>
+
+<div class="layout">
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="sb-sec">
+      <div class="sb-lbl">Ver mes</div>
+      <div class="mtabs" id="mtabs"></div>
+    </div>
+    <div class="sb-sec">
+      <div class="sb-lbl">Por categoría</div>
+      <div id="cat-list"></div>
+    </div>
+    <div class="sb-sec" style="flex:1">
+      <div class="sb-lbl">Últimas transacciones</div>
+      <div id="tx-list"></div>
+    </div>
+  </aside>
+
+  <!-- Main -->
+  <div class="main-area">
+    <div class="tab-bar">
+      <div class="tab active" id="tab-txs" onclick="switchTab('txs')">📋 Transacciones</div>
+      <div class="tab" id="tab-cats" onclick="switchTab('cats')">📂 Categorías</div>
+    </div>
+
+    <!-- Transactions panel -->
+    <div class="txs-area" id="txs-area" style="display:flex">
+      <div class="txs-toolbar">
+        <input type="text" id="tx-search" placeholder="🔍 Buscar..." oninput="renderTable()"/>
+        <select id="tx-filter-month" onchange="renderTable()">
+          <option value="">Todos los meses</option>
+        </select>
+        <select id="tx-filter-cat" onchange="renderTable()">
+          <option value="">Todas las categorías</option>
+          <option>Alimentación</option><option>Restaurantes</option><option>Transporte</option>
+          <option>Hogar</option><option>Ocio</option><option>Salud</option>
+          <option>Ropa</option><option>Suscripciones</option><option>Trabajo</option><option>Alquiler</option><option>Sueldo</option><option>Otros</option>
+        </select>
+        <select id="tx-filter-type" onchange="renderTable()">
+          <option value="">Gastos e ingresos</option>
+          <option value="gasto">Solo gastos</option>
+          <option value="ingreso">Solo ingresos</option>
+        </select>
+        <label class="add-btn pdf-upload-btn" title="Importar PDF de extracto bancario">
+          📄 PDF
+          <input type="file" accept=".pdf,application/pdf" style="display:none" onchange="handlePdf(event)"/>
+        </label>
+        <button class="add-btn" onclick="openTxModal(null)">+ Agregar</button>
+      </div>
+      <div class="tx-table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Fecha</th><th>Descripción</th><th>Categoría</th>
+              <th>Tipo</th><th>Importe</th><th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody id="tx-tbody"></tbody>
+        </table>
+      </div>
+      <div class="tx-count" id="tx-count"></div>
+    </div>
+
+    <!-- Category detail panel -->
+    <div class="cats-area" id="cats-area">
+      <div class="cats-top">
+        <select id="cat-select" onchange="renderCats()">
+          <option value="ALL">Todas las categorías</option>
+          <option value="Alimentación">🛒 Alimentación</option>
+          <option value="Restaurantes">🍽️ Restaurantes</option>
+          <option value="Transporte">🚗 Transporte</option>
+          <option value="Hogar">🏠 Hogar</option>
+          <option value="Ocio">🎬 Ocio</option>
+          <option value="Salud">💊 Salud</option>
+          <option value="Ropa">👗 Ropa</option>
+          <option value="Suscripciones">📱 Suscripciones</option>
+          <option value="Trabajo">💼 Trabajo</option>
+          <option value="Alquiler">🏠 Alquiler</option>
+          <option value="Sueldo">💳 Sueldo</option>
+          <option value="Otros">📦 Otros</option>
+        </select>
+        <div class="cat-period-tabs">
+          <span class="cpt active" id="cpt-all" onclick="setCatPeriod('all')">Todo</span>
+        </div>
+      </div>
+      <div class="cats-content" id="cats-content"></div>
+    </div>
+  </div>
+</div>
+
+<script src="js/app.js"></script>
+</body>
+</html>
