@@ -97,10 +97,18 @@
 
 <!-- Stats strip (mobile) -->
 <div class="stats-strip">
-  <div class="stat-chip ing"><span class="sc-lbl">Ingresos</span><span class="sc-val" id="ss-ing">€0</span></div>
-  <div class="stat-chip gas"><span class="sc-lbl">Gastos</span><span class="sc-val" id="ss-gas">€0</span></div>
-  <div class="stat-chip bal"><span class="sc-lbl">Balance</span><span class="sc-val" id="ss-bal">€0</span></div>
-  <div class="stat-chip sal" onclick="editSaldo()" style="cursor:pointer"><span class="sc-lbl">Saldo ✏️</span><span class="sc-val" id="ss-saldo">€0</span></div>
+  <div class="stat-chip sal" onclick="editSaldo()" style="cursor:pointer">
+    <div class="sal-left">
+      <span class="sc-lbl">Saldo cuenta</span>
+      <span class="sc-val" id="ss-saldo">€0</span>
+    </div>
+    <span class="sal-edit">✏️</span>
+  </div>
+  <div class="stats-row">
+    <div class="stat-chip ing"><span class="sc-lbl">Ingresos</span><span class="sc-val" id="ss-ing">€0</span></div>
+    <div class="stat-chip gas"><span class="sc-lbl">Gastos</span><span class="sc-val" id="ss-gas">€0</span></div>
+    <div class="stat-chip bal"><span class="sc-lbl">Balance</span><span class="sc-val" id="ss-bal">€0</span></div>
+  </div>
 </div>
 
 <div class="layout">
@@ -147,7 +155,7 @@
           <option value="gasto">Solo gastos</option>
           <option value="ingreso">Solo ingresos</option>
         </select>
-        <label class="add-btn pdf-upload-btn" title="Importar PDF de extracto bancario">
+        <label class="pdf-upload-btn" title="Importar PDF de extracto bancario">
           📄 PDF
           <input type="file" accept=".pdf,application/pdf" style="display:none" onchange="handlePdf(event)"/>
         </label>
@@ -202,13 +210,12 @@
     <span class="bnav-icon">📋</span>
     <span>Movimientos</span>
   </button>
-  <button class="bnav-item" id="bnav-cats" onclick="switchTab('cats')">
-    <span class="bnav-icon">📂</span>
-    <span>Categorías</span>
-  </button>
   <button class="bnav-item bnav-add" onclick="openTxModal(null)">
     <span class="bnav-icon">＋</span>
-    <span>Agregar</span>
+  </button>
+  <button class="bnav-item" id="bnav-cats" onclick="switchTab('cats')">
+    <span class="bnav-icon">📊</span>
+    <span>Categorías</span>
   </button>
 </nav>
 

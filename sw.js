@@ -1,4 +1,4 @@
-const CACHE_NAME = 'mi-agente-financiero-v1';
+const CACHE_NAME = 'mis-finanzas-v2';
 const APP_SHELL = [
   'index.html',
   'css/styles.css',
