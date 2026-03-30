@@ -95,6 +95,14 @@
   </div>
 </header>
 
+<!-- Stats strip (mobile) -->
+<div class="stats-strip">
+  <div class="stat-chip ing"><span class="sc-lbl">Ingresos</span><span class="sc-val" id="ss-ing">€0</span></div>
+  <div class="stat-chip gas"><span class="sc-lbl">Gastos</span><span class="sc-val" id="ss-gas">€0</span></div>
+  <div class="stat-chip bal"><span class="sc-lbl">Balance</span><span class="sc-val" id="ss-bal">€0</span></div>
+  <div class="stat-chip sal" onclick="editSaldo()" style="cursor:pointer"><span class="sc-lbl">Saldo ✏️</span><span class="sc-val" id="ss-saldo">€0</span></div>
+</div>
+
 <div class="layout">
   <!-- Sidebar -->
   <aside class="sidebar">
@@ -121,6 +129,8 @@
 
     <!-- Transactions panel -->
     <div class="txs-area" id="txs-area" style="display:flex">
+      <!-- Month strip (mobile) -->
+      <div class="month-strip" id="month-strip"></div>
       <div class="txs-toolbar">
         <input type="text" id="tx-search" placeholder="🔍 Buscar..." oninput="renderTable()"/>
         <select id="tx-filter-month" onchange="renderTable()">
@@ -154,6 +164,8 @@
           <tbody id="tx-tbody"></tbody>
         </table>
       </div>
+      <!-- Cards (mobile) -->
+      <div class="tx-cards" id="tx-cards"></div>
       <div class="tx-count" id="tx-count"></div>
     </div>
 
@@ -183,6 +195,22 @@
     </div>
   </div>
 </div>
+
+<!-- Bottom nav (mobile) -->
+<nav id="bottom-nav">
+  <button class="bnav-item active" id="bnav-txs" onclick="switchTab('txs')">
+    <span class="bnav-icon">📋</span>
+    <span>Movimientos</span>
+  </button>
+  <button class="bnav-item" id="bnav-cats" onclick="switchTab('cats')">
+    <span class="bnav-icon">📂</span>
+    <span>Categorías</span>
+  </button>
+  <button class="bnav-item bnav-add" onclick="openTxModal(null)">
+    <span class="bnav-icon">＋</span>
+    <span>Agregar</span>
+  </button>
+</nav>
 
 <script src="js/app.js"></script>
 </body>

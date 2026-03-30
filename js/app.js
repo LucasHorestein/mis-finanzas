@@ -41,6 +41,11 @@ function switchTab(t){
   document.getElementById('cats-area').style.display=t==='cats'?'flex':'none';
   document.getElementById('tab-txs').classList.toggle('active',t==='txs');
   document.getElementById('tab-cats').classList.toggle('active',t==='cats');
+  // Bottom nav
+  const bt=document.getElementById('bnav-txs');
+  const bc=document.getElementById('bnav-cats');
+  if(bt)bt.classList.toggle('active',t==='txs');
+  if(bc)bc.classList.toggle('active',t==='cats');
   if(t==='txs')renderTable();
   if(t==='cats')renderCats();
 }
@@ -52,14 +57,28 @@ function buildMonthTabs(){
   const curVal=sel.value;
   sel.innerHTML='<option value="">Todos los meses</option>'+months.map(m=>`<option value="${m}">${MONTH_LBL[m]||m}</option>`).join('');
   if(curVal)sel.value=curVal;
+  // Sidebar tabs (desktop)
   document.getElementById('mtabs').innerHTML=months.map(m=>
     `<span class="mtab${m===activeMon?' active':''}" onclick="setMon('${m}')">${MONTH_LBL[m]||m}</span>`
   ).join('');
+  // Month strip (mobile)
+  const strip=document.getElementById('month-strip');
+  if(strip){
+    strip.innerHTML=['all',...months].map(m=>
+      `<span class="mstrip-tab${(m==='all'&&!activeMon)||(m===activeMon)?' active':''}" onclick="setMonMobile('${m}')">${m==='all'?'Todo':MONTH_LBL[m]||m}</span>`
+    ).join('');
+  }
+}
+function setMonMobile(m){
+  activeMon=m==='all'?'':m;
+  buildMonthTabs();
+  updateSidebar();
+  renderTable();
 }
 function setMon(m){activeMon=m;buildMonthTabs();updateSidebar();}
 
 function updateSidebar(){
-  const mt=txs.filter(t=>t.date.startsWith(activeMon));
+  const mt=activeMon?txs.filter(t=>t.date.startsWith(activeMon)):txs;
   const ing=mt.filter(t=>t.type==='ingreso').reduce((s,t)=>s+t.amount,0);
   const gas=mt.filter(t=>t.type==='gasto').reduce((s,t)=>s+t.amount,0);
   const bal=ing-gas;
@@ -68,6 +87,15 @@ function updateSidebar(){
   const be=document.getElementById('h-bal');
   be.textContent=(bal>=0?'+':'')+'€'+Math.abs(bal).toFixed(2);
   be.className=bal>=0?'pos':'neg';
+  // Stats strip (mobile)
+  const si=document.getElementById('ss-ing');
+  const sg=document.getElementById('ss-gas');
+  const sb=document.getElementById('ss-bal');
+  const ss=document.getElementById('ss-saldo');
+  if(si)si.textContent='€'+ing.toFixed(2);
+  if(sg)sg.textContent='€'+gas.toFixed(2);
+  if(sb){sb.textContent=(bal>=0?'+':'')+'€'+Math.abs(bal).toFixed(2);sb.style.color=bal>=0?'var(--ok)':'var(--err)';}
+  if(ss){const sv=localStorage.getItem('fin-saldo');if(sv)ss.textContent='€'+parseFloat(sv).toFixed(2);}
   const cats={};
   mt.filter(t=>t.type==='gasto').forEach(t=>{cats[t.category]=(cats[t.category]||0)+t.amount;});
   const mx=Math.max(...Object.values(cats),1);
@@ -81,10 +109,10 @@ function updateSidebar(){
   ).join('');
 }
 
-// ── Transactions table ────────────────────────────────────────────────────────
+// ── Transactions table + cards ────────────────────────────────────────────────
 function renderTable(){
   const search=document.getElementById('tx-search').value.toLowerCase();
-  const mon=document.getElementById('tx-filter-month').value;
+  const mon=document.getElementById('tx-filter-month').value||activeMon;
   const cat=document.getElementById('tx-filter-cat').value;
   const type=document.getElementById('tx-filter-type').value;
   let filtered=[...txs].filter(t=>{
@@ -94,6 +122,8 @@ function renderTable(){
     if(search&&!t.description.toLowerCase().includes(search)&&!t.category.toLowerCase().includes(search))return false;
     return true;
   }).sort((a,b)=>b.date.localeCompare(a.date));
+
+  // Desktop table
   document.getElementById('tx-tbody').innerHTML=filtered.map(t=>`
     <tr onclick="openTxModal(${t.id})">
       <td>${new Date(t.date+'T12:00:00').toLocaleDateString('es-ES',{day:'2-digit',month:'short',year:'numeric'})}</td>
@@ -103,8 +133,29 @@ function renderTable(){
       <td class="amt-${t.type}">${t.type==='gasto'?'-':'+'}€${t.amount.toFixed(2)}</td>
       <td onclick="event.stopPropagation()"><div style="display:flex;gap:4px"><button class="ta-btn" onclick="openTxModal(${t.id})">✏️</button><button class="ta-btn del" onclick="openDelModal(${t.id},'${t.description.replace(/'/g,"\\'")}')">🗑️</button></div></td>
     </tr>`).join('');
+
+  // Mobile cards
+  const cards=document.getElementById('tx-cards');
+  if(cards){
+    if(filtered.length===0){
+      cards.innerHTML='<div style="text-align:center;color:var(--mut);padding:40px 20px;font-size:13px">Sin movimientos</div>';
+    } else {
+      cards.innerHTML=filtered.map(t=>{
+        const dateStr=new Date(t.date+'T12:00:00').toLocaleDateString('es-ES',{day:'numeric',month:'short'});
+        return `<div class="tx-card" onclick="openTxModal(${t.id})">
+          <div class="txc-icon">${CAT_EMOJI[t.category]||'📦'}</div>
+          <div class="txc-info">
+            <div class="txc-desc">${t.description}</div>
+            <div class="txc-meta">${t.category} · ${dateStr}</div>
+          </div>
+          <div class="txc-amount ${t.type}">${t.type==='gasto'?'-':'+'}€${t.amount.toFixed(2)}</div>
+        </div>`;
+      }).join('');
+    }
+  }
+
   const total=filtered.reduce((s,t)=>t.type==='gasto'?s-t.amount:s+t.amount,0);
-  document.getElementById('tx-count').innerHTML=`<strong>${filtered.length}</strong> transacciones · Balance: <strong style="color:${total>=0?'var(--ok)':'var(--err)'}">${total>=0?'+':''}€${Math.abs(total).toFixed(2)}</strong>`;
+  document.getElementById('tx-count').innerHTML=`<strong>${filtered.length}</strong> movimientos · <strong style="color:${total>=0?'var(--ok)':'var(--err)'}">${total>=0?'+':''}€${Math.abs(total).toFixed(2)}</strong>`;
 }
 
 // ── ABM ───────────────────────────────────────────────────────────────────────
